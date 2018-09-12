@@ -1,0 +1,177 @@
+RECODE V133 (99=0) (else=copy) into edu.
+execute.
+fre V133 edu.
+
+recode edu (0=0) (else=1) into edu_1.
+EXECUTE.
+fre edu_1.
+
+fre v025.
+execute.
+
+FREQUENCIES v702.
+
+RECODE v702 (98=0) (99=0) (SYSMIS=0) (else=copy) into part_edu.
+execute.
+fre part_edu.
+
+fre V501 V702.
+
+fre v130 s46.
+
+RECODE s46 (8=1) (2=1) (9=1) (SYSMIS=1) (else=copy) into caste.
+fre caste.
+
+fre v130.
+
+RECODE v130 (1=1) (else=2) into religion.
+fre religion.
+
+compute religion_caste=2.
+if(caste=1 & religion=1) religion_caste=0.
+if((caste=3 or caste=4) & religion=1) religion_caste=1.
+if(caste=4 & religion=1) religion_caste=1.
+fre religion_caste.
+
+fre caste religion.
+fre v201.
+fre religion_caste.
+
+fre v190.
+RECODE v190 (2=1) (else=0) into poorer.
+recode v190 (3=1) (else=0) into middle.
+recode v190 (4=1) (else=0) into richer.
+recode v190 (5=1) (else=0) into richest.
+
+fre poorer.
+
+fre v201.
+
+
+
+***************
+
+****Parul Puri Assignment****
+******Select Arunanchal Pradesh******
+
+DATASET ACTIVATE DataSet1.
+DATASET COPY  LKD_AP.
+DATASET ACTIVATE  LKD_AP.
+FILTER OFF.
+USE ALL.
+SELECT IF (V024 = 12).
+EXECUTE.
+DATASET ACTIVATE  DataSet1.
+
+********Select Ever_Married*****
+
+DATASET ACTIVATE LKD_AP.
+DATASET COPY  AP_EM.
+DATASET ACTIVATE  AP_EM.
+FILTER OFF.
+USE ALL.
+SELECT IF (V501 ~= 0).
+EXECUTE.
+DATASET ACTIVATE  LKD_AP.
+
+
+*****Dummy Variabels*****
+****Place of Residence****
+
+
+fre V025.
+
+recode V025 (1=1)(else=0) into urban.
+recode V025 (2=1) (else=0) into rural.
+execute.
+
+
+****Wealth Index****
+
+fre V190.
+
+Recode V190 (2=1)(else=0) into poorer.
+Recode V190 (3=1)(else=0) into middle.
+Recode V190 (4=1)(else=0) into richer.
+Recode V190 (5=1)(else=0) into richest.
+exe.
+
+fre poorer middle richer richest.
+
+
+****Mother's Education*****
+
+recode V133 (99=0) (else=copy) into edu.
+EXECUTE.
+
+fre V133 edu.
+
+recode edu (0=1)(1thru 8=2)( 9 thru 12=3)  ( 13 thru 23=4) into Education.
+DATASET ACTIVATE.
+
+fre Education.
+
+Recode Education (2=1)(else=0) into below_inter.
+Recode Education (3=1)(else=0) into inter.
+Recode Education (4=1)(else=0) into inter_above.
+execute.
+
+fre Education below_inter inter inter_above.
+
+****Mother's Age****
+
+Recode V012 (15 thru 19=1) (20 thru 24=2) (25 thru 29=3) (30 thru 34=4) (35 thru 49=5) into Mot_Age.
+value labels Mot_Age 1'15-19' 2' 20-24' 3'25-29' 4'30-34' 5'35 and above'.
+execute.
+
+fre V012 Mot_Age.
+
+*****Dummy Variables of Mother's Age*****
+
+Recode Mot_Age (2=1)(else=0) into young.
+Recode Mot_Age (3=1)(else=0) into middle_age.
+Recode Mot_Age (4=1)(else=0) into old.
+Recode Mot_Age (5=1)(else=0) into very_old.
+execute.
+
+Fre Mot_Age young middle_age old very_old.
+
+
+***Regression Analysis***
+
+REGRESSION
+  /MISSING LISTWISE
+  /STATISTICS COEFF OUTS R ANOVA
+  /CRITERIA=PIN(.05) POUT(.10)
+  /NOORIGIN 
+  /DEPENDENT V201
+  /METHOD=ENTER urban poorer middle richer richest below_inter inter inter_above young middle_age 
+    old very_old.
+
+
+
+******MCA******
+
+ANOVA V201 by urban(0 1)/method=hierarchical/statistics=mca.
+Execute.
+
+ANOVA V201 by V190(1 5)/method=hierarchical/statistics=mca.
+Execute.
+
+ANOVA V201 by Mot_Age(1 5)/method=hierarchical/statistics=mca.
+Execute.
+
+ANOVA V201 by Education(1 4)/method=hierarchical/statistics=mca.
+Execute.
+
+
+****Binary Logistic Regression****
+
+LOGISTIC REGRESSION VARIABLES fp_use
+  /METHOD=ENTER Mot_Age Education V025 V190 
+  /CONTRAST (Mot_Age)=Indicator(1)
+  /CONTRAST (Education)=Indicator(1)
+  /CONTRAST (V025)=Indicator(1)
+  /CONTRAST (V190)=Indicator(1)
+  /CRITERIA=PIN(0.05) POUT(0.10) ITERATE(20) CUT(0.5).
+
